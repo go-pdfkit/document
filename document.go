@@ -242,11 +242,12 @@ type builder struct {
 	limits Limits
 	tables []extract.Table
 
-	para    []string      // the lines of the paragraph being built
-	items   []string      // the text of each item of the list being built
-	mark    string        // the mark that list's items begin with
-	prev    []extract.Run // the line before this one
-	inTable int           // the index of the table last emitted, or -1
+	para        []string      // the lines of the paragraph being built
+	items       []string      // the text of each item of the list being built
+	mark        string        // the mark that list's items begin with
+	prev        []extract.Run // the line before this one
+	inTable     int           // the index of the table last emitted, or -1
+	headingSize int           // the size of the heading last put out
 }
 
 // take reads one line.
@@ -262,8 +263,25 @@ func (b *builder) take(line []extract.Run) {
 	// [tablesBelowTheHeadings]. Asking the other way round let a heading
 	// between two rows of a table become a row of it.
 	if level, ok := b.levels[round(lineSize(line))]; ok {
+		// A heading's text wraps like anything else, and the lines it wraps
+		// onto are the same heading.
+		//
+		// ⛔ The guard is the same SIZE and not the same level. Levels are
+		// clamped to as many as the format has, so three headings at thirty,
+		// twenty-eight and twenty-six points can share a level — and joining
+		// those made one heading out of three. The distance is the other
+		// guard: a wrapped heading's next line is one leading below, and a
+		// second heading sits further down.
+		size := round(lineSize(line))
+		if h, ok := b.lastHeading(); ok && b.headingSize == size && !b.far(line) {
+			b.out[len(b.out)-1] = richdoc.Heading{
+				Level: h.Level, Inlines: text(join(inlineText(h.Inlines), said)),
+			}
+			return
+		}
 		b.flush()
 		b.out = append(b.out, richdoc.Heading{Level: level, Inlines: text(said)})
+		b.headingSize = size
 		return
 	}
 	if i, ok := b.tableAt(line); ok {
@@ -290,16 +308,64 @@ func (b *builder) take(line []extract.Run) {
 	if len(b.items) > 0 {
 		// An unmarked line under a list item is the rest of that item: a
 		// bullet's text wraps, and the lines it wraps onto carry no bullet.
-		b.items[len(b.items)-1] += " " + said
+		b.items[len(b.items)-1] = join(b.items[len(b.items)-1], said)
 		return
 	}
 	b.para = append(b.para, said)
 }
 
+// lastHeading is the heading this page ended with, if the last thing it put
+// out was one.
+func (b *builder) lastHeading() (richdoc.Heading, bool) {
+	if len(b.out) == 0 || len(b.para) > 0 || len(b.items) > 0 {
+		return richdoc.Heading{}, false
+	}
+	h, ok := b.out[len(b.out)-1].(richdoc.Heading)
+	return h, ok
+}
+
+// inlineText reads back inline content this package wrote.
+func inlineText(in []richdoc.Inline) string {
+	var out strings.Builder
+	for _, i := range in {
+		if t, ok := i.(richdoc.Text); ok {
+			out.WriteString(t.Value)
+		}
+	}
+	return out.String()
+}
+
+// joinAll puts every line of a block together, each the way [join] does.
+func joinAll(lines []string) string {
+	out := lines[0]
+	for _, line := range lines[1:] {
+		out = join(out, line)
+	}
+	return out
+}
+
+// join puts two lines of one block together.
+//
+// ⛔ No space after a hyphen, because that is where a typesetter broke a word:
+// "cadre man-" and "ager" joined with a space is "man- ager", which is not
+// what the page says. Removing the line break says "man-ager", which is.
+//
+// ⛔ And the hyphen STAYS. Dropping it would read "manager", which is right
+// here and wrong for "well-known" broken at its own hyphen — and the two
+// cannot be told apart without a dictionary of the language the document is
+// in. Keeping it loses nothing a reader cannot undo; dropping it cannot be
+// undone.
+func join(before, next string) string {
+	if strings.HasSuffix(before, "-") {
+		return before + next
+	}
+	return before + " " + next
+}
+
 // flush closes whatever block is open.
 func (b *builder) flush() {
 	if len(b.para) > 0 {
-		b.out = append(b.out, richdoc.Paragraph{Inlines: text(strings.Join(b.para, " "))})
+		b.out = append(b.out, richdoc.Paragraph{Inlines: text(joinAll(b.para))})
 		b.para = nil
 	}
 	if len(b.items) > 0 {

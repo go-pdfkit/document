@@ -75,7 +75,8 @@ tallest piece makes it a heading.
 
 | | |
 |---|---|
-| a **paragraph** | consecutive body lines joined with spaces, ending at a gap down the page wider than 1.8 of the line's own height. Ordinary leading is about 1.2, and the space a typesetter puts above a paragraph takes its first line past that. |
+| a **paragraph** | consecutive body lines joined, ending at a gap down the page wider than 1.8 of the line's own height. Ordinary leading is about 1.2, and the space a typesetter puts above a paragraph takes its first line past that. |
+| a **heading over two lines** | one heading. A heading's text wraps like anything else, and the guard is the same *size* — not the same level, since levels are clamped and thirty, twenty-eight and twenty-six point can share one. |
 | a **list** | consecutive lines beginning with the same short mark — one or two characters with no letter or digit in them. A line under an item and *not* marked is the rest of that item: a bullet's text wraps, and the lines it wraps onto carry no bullet. |
 | a **table** | what [`extract.Tables`](https://github.com/go-pdfkit/extract#tables) found, which is its own inference and documents its own limits. |
 
@@ -125,24 +126,35 @@ one, because a table's box says where its words are and not which words.
 ## How it is checked
 
 100% of statements with no uncovered blocks, and the thresholds are **mutated**
-rather than trusted: 21 mutations, every one caught except the tie-break
+rather than trusted: 27 mutations, every one caught except the tie-break
 between two equally popular sizes, which buys determinism and not a different
 reading — the code says so where it is.
 
 Then on real documents, which is where every defect above was found, and none
 of which a fixture could have shown:
 
-```
+```text
                            pages     h    par    ul/li     tbl
-a 213-page reference work    213    695   1257  334/1989    30
+a 213-page reference work    213    618   1257  334/1989    30
 a 9-page report                9      1     43    6/21       4
 a 6-page technical paper       6     11     29    3/10      12
-a 2-page note                  2      7     12    1/3        2
+a 2-page note                  2      6     12    1/3        2
 a 3-page prose report          3      0     12    3/6        0
 ```
 
 The last row is the control: a report with no headings and no tables in it
 reports none of either.
+
+## Joining a line to the one above it
+
+⛔ **No space after a hyphen**, because that is where a typesetter broke a
+word. `cadre man-` and `ager` joined with a space is `man- ager`, which is not
+what the page says; removing the line break says `man-ager`, which is.
+
+⛔ **And the hyphen stays.** Dropping it would read `manager` — right there,
+and wrong for `well-known` broken at its own hyphen. The two cannot be told
+apart without a dictionary of the language the document is in, and keeping the
+hyphen loses nothing a reader cannot undo while dropping it cannot be undone.
 
 ## The rest of the family
 

@@ -136,8 +136,9 @@ func TestTheBodyIsCountedInCharactersAndNotInLines(t *testing.T) {
 	doc := Parse(d)
 	got := shape(doc.Blocks)
 	// Two lines of heading against six of body: the heading wins on lines and
-	// loses on characters, and characters is what decides.
-	if !strings.HasPrefix(got, `h1 "A Heading"`) {
+	// loses on characters, and characters is what decides. The two lines are
+	// one heading, because a heading's text wraps like anything else.
+	if !strings.HasPrefix(got, `h1 "A Heading On Two Lines"`) {
 		t.Errorf("the heading was not read as one:\n%s", got)
 	}
 	if !strings.Contains(got, `p "a line of ordinary body text`) {
@@ -574,7 +575,9 @@ func TestASecondBodySizeIsNotAHeading(t *testing.T) {
 func TestManyShortHeadingsDoNotOutvoteFewLongParagraphs(t *testing.T) {
 	var lines []string
 	for i := 0; i < 7; i++ {
-		lines = append(lines, line(20, 20, 380-26*i, "Short"))
+		// Forty-four points apart, which at twenty-point type is past the
+		// paragraph break: seven headings, not one wrapped over seven lines.
+		lines = append(lines, line(20, 20, 380-44*i, "Short"))
 	}
 	for i := 0; i < 5; i++ {
 		lines = append(lines, line(10, 20, 190-12*i,
@@ -600,5 +603,76 @@ func TestASizeAFractionOfAPointAboveTheBodyIsTheBody(t *testing.T) {
 	got := shape(Parse(pagesWith(t, strings.Join(lines, "\n"))).Blocks)
 	if strings.Contains(got, "h1 ") {
 		t.Errorf("four tenths of a point made a heading:\n%s", got)
+	}
+}
+
+// A heading's text wraps like anything else, and the lines it wraps onto are
+// the same heading. Measured: a two-page note's title broke across two lines
+// at a hyphen and came back as two h1s, one of them reading "ager".
+func TestAWrappedHeadingIsOneHeading(t *testing.T) {
+	d := pagesWith(t, strings.Join([]string{
+		line(20, 20, 380, "Note d'argumentaire - Reconnaissance de la fonction de cadre man-"),
+		line(20, 20, 356, "ager"),
+		body(6, 320),
+	}, "\n"))
+	got := shape(Parse(d).Blocks)
+	// ⛔ Joined with no space, because a hyphen at the end of a line is where
+	// a word was broken. And the hyphen STAYS: dropping it reads "manager"
+	// here and "wellknown" for a word broken at its own hyphen, and the two
+	// cannot be told apart without a dictionary.
+	want := `h1 "Note d'argumentaire - Reconnaissance de la fonction de cadre man-ager"`
+	if !strings.HasPrefix(got, want) {
+		t.Errorf("read\n%s\nwant it to start\n%s", got, want)
+	}
+	if n := strings.Count(got, "h1 "); n != 1 {
+		t.Errorf("%d headings, want 1:\n%s", n, got)
+	}
+}
+
+// ⛔ Two headings at the same LEVEL but different SIZES are two headings.
+// Levels are clamped to as many as the format has, so thirty, twenty-eight and
+// twenty-six point can share one — and joining on the level made one heading
+// out of three.
+func TestTwoSizesSharingALevelAreTwoHeadings(t *testing.T) {
+	d := pagesWith(t, strings.Join([]string{
+		line(30, 20, 380, "One"),
+		line(28, 20, 350, "Two"),
+		line(26, 20, 320, "Three"),
+		body(8, 290),
+	}, "\n"))
+	got := shape(ParseWithLimits(d, Limits{HeadingLevels: 2}).Blocks)
+	for _, want := range []string{`h1 "One"`, `h2 "Two"`, `h2 "Three"`} {
+		if !strings.Contains(got, want) {
+			t.Errorf("%s is missing:\n%s", want, got)
+		}
+	}
+}
+
+// A hyphen inside a paragraph's wrap is the same rule, and an ordinary wrap
+// still gets its space.
+func TestAParagraphWrappedAtAHyphen(t *testing.T) {
+	d := pagesWith(t, strings.Join([]string{
+		line(10, 20, 380, "the infra-"),
+		line(10, 20, 368, "structure of the whole site, and a few more words to be the body"),
+		line(10, 20, 356, "with a second line that wrapped normally"),
+	}, "\n"))
+	got := shape(Parse(d).Blocks)
+	want := `p "the infra-structure of the whole site, and a few more words to be the body with a second line that wrapped normally"`
+	if got != want {
+		t.Errorf("read\n%s\nwant\n%s", got, want)
+	}
+}
+
+// And a bullet whose text wraps at a hyphen, which is the third place the
+// same join is used.
+func TestABulletWrappedAtAHyphen(t *testing.T) {
+	d := pagesWith(t, strings.Join([]string{
+		"BT /F1 10 Tf 20 380 Td (\225) Tj 20 0 Td (the infra-) Tj ET",
+		line(10, 40, 368, "structure"),
+		"BT /F1 10 Tf 20 356 Td (\225) Tj 20 0 Td (and the rest) Tj ET",
+	}, "\n"))
+	got := shape(Parse(d).Blocks)
+	if want := `ul "the infra-structure" "and the rest"`; got != want {
+		t.Errorf("read\n%s\nwant\n%s", got, want)
 	}
 }
