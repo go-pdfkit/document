@@ -4,7 +4,7 @@ go 1.27.1
 
 require (
 	github.com/go-pdfkit/extract v0.9.0
-	github.com/go-pdfkit/reader v0.8.0
+	github.com/go-pdfkit/reader v0.9.0
 	github.com/go-richdoc/richdoc v0.6.0
 )
 
