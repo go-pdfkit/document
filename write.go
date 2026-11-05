@@ -43,14 +43,33 @@ type WriteOptions struct {
 
 // Write lays a [richdoc.Document] out as a PDF.
 //
-// ⛔ IT IS THE DIRECTION THAT DID NOT EXIST. This package reads a PDF back as
-// a document; everything in the fleet that produces a richdoc — Word, Excel
-// and PowerPoint through go-ooxml, ODT, ODS, ODP and ODG through go-odf,
-// Markdown, CSV, JSON, XML, plain text, EPUB, MOBI, FB2 and email through
-// go-richdoc — had nowhere to go afterwards. Measured on 2026-11-05 with
-// fleetverbs: every ToPDF in the fleet was in go-pdfkit/convert, and every one
-// of them took pictures, an SVG, a ZIP of pictures or an XPS package.
-// Seventeen capabilities were missing for want of this.
+// This package reads a PDF back as a document, and this is the way out again:
+// everything in the fleet that produces a richdoc — Word, Excel and PowerPoint
+// through go-ooxml, ODT, ODS, ODP and ODG through go-odf, Markdown, CSV, JSON,
+// XML, plain text, EPUB, MOBI, FB2 and email through go-richdoc — can now be
+// laid out on a page without leaving Go.
+//
+// # ⛔ IT IS NOT THE ONLY WAY OUT, AND THE FIRST VERSION OF THIS COMMENT SAID
+// IT WAS
+//
+// It claimed to be "the direction that did not exist", on a search for
+// functions named ToPDF. Two were already there and are named Write:
+//
+//	go-richdoc/rst/pdf     richdoc → reST → docutils → LaTeX → go-tex/engine
+//	go-richdoc/latex/pdf   richdoc → LaTeX → go-tex/engine
+//
+// Both compile real TeX, which is a six-megabyte engine and, today, loses
+// emphasis to go-tex/engine#590. Which to reach for:
+//
+//   - THIS one for a pure-Go, CGO-free page that also builds for GOOS=js, and
+//     where emphasis, links and tables survive. It inherits html2pdf's limits:
+//     no JavaScript, no @font-face, no CSS background images, CJK unrendered.
+//   - rst/pdf or latex/pdf when TeX's typesetting is the point — real
+//     hyphenation and justification — and the size and the CGO-free promise
+//     are not.
+//
+// The claim was wrong because the search was: a capability is not found by
+// guessing what its function is called.
 //
 // # It composes rather than typesets
 //
