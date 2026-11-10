@@ -1,14 +1,14 @@
 module github.com/go-pdfkit/document
 
-go 1.27.2
+go 1.27.3
 
 require (
-	github.com/go-pdfkit/extract v0.9.0
+	github.com/go-pdfkit/extract v0.11.0
 	github.com/go-pdfkit/html2pdf v0.4.1
-	github.com/go-pdfkit/pdfkit v0.23.0
+	github.com/go-pdfkit/pdfkit v0.24.0
 	github.com/go-pdfkit/reader v0.10.0
-	github.com/go-richdoc/html v0.3.0
-	github.com/go-richdoc/richdoc v0.7.0
+	github.com/go-richdoc/html v0.4.1
+	github.com/go-richdoc/richdoc v0.9.0
 )
 
 require (
@@ -27,7 +27,7 @@ require (
 	github.com/go-images/jpeg2000 v0.14.0 // indirect
 	github.com/go-images/png v0.2.0 // indirect
 	github.com/go-opentype/fonts v0.14.0 // indirect
-	github.com/go-opentype/opentype v0.16.2-0.20261027113239-5e69589e9a5e // indirect
+	github.com/go-opentype/opentype v0.17.0 // indirect
 	github.com/go-pdfkit/pdffont v0.4.0 // indirect
 	github.com/go-simd/highway v0.0.14 // indirect
 	github.com/go-sourcemap/sourcemap v2.1.4+incompatible // indirect
