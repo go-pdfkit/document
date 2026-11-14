@@ -1,14 +1,14 @@
 module github.com/go-pdfkit/document
 
-go 1.27.3
+go 1.27.4
 
 require (
 	github.com/go-pdfkit/extract v0.11.0
 	github.com/go-pdfkit/html2pdf v0.4.1
 	github.com/go-pdfkit/pdfkit v0.24.0
-	github.com/go-pdfkit/reader v0.10.0
-	github.com/go-richdoc/html v0.4.1
-	github.com/go-richdoc/richdoc v0.9.0
+	github.com/go-pdfkit/reader v0.11.0
+	github.com/go-richdoc/html v0.5.0
+	github.com/go-richdoc/richdoc v0.10.0
 )
 
 require (
